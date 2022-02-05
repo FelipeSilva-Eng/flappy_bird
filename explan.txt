@@ -1,0 +1,299 @@
+Passo a passo do 1° vídeo
+
+(0,0)                                         (800, 0)
+ ____________________________________________________
+ |               ----> x 800                         |
+ |               |                                   |
+ |               |                                   |
+ |               |                                   |
+ |               v                                   |
+ |               y 600                               |
+ |                                                   |
+ |                                                   |
+ |___________________________________________________|
+(0, 600)                                    (800, 600)
+
+VIDEO 1
+-> inicializar todos os módulos do pygame
+-> definir variaveis do tamanho da tela:
+    width = 800
+    height = 768
+
+-> definir uma screen
+-> definir o clock para estabilizar o fps
+
+-> fazer load da imagem de fundo, background
+-> fazer load da imagem ground, a de baixo
+
+-> definir o game loop
+
+-> mostrar na tela o background (usando a função blit)
+-> mostrar na tela o ground (usando a função blit)
+
+-> fazer o efeito de rolagem do ground
+    -> definir variaveis ground_scroll=0 e scroll_speed=4
+    
+    -> na função para blitar o ground, temos que passar dois argumentos
+    um é a imagem que queremos blitar e o outro é uma tupla contendo as 
+    coordenadas da tela na qual vamos blitar a imagem, x e y
+    -> screen.blit(ground_image, (ground_scroll, 600))
+    -> ground_scroll = 0 (que foi a variavel definida antes)
+    -> para fazer o ground mover da direita para a esquerda, 
+    temos que fazer ground_scroll -= ground_scroll
+    -> só que fazendo isso, o que acontece é que a imagem vem toda pra esquerda
+    e não tem mais imagem pra mostrar
+    -> pra resolver esse problema podemos fazer um if statement
+    
+    if abs(ground_scroll) > 35:
+        ground_scroll = 0
+
+    -> aqui estamos usando abs pra transformar o ground_scroll em número positivo,
+    35 é o tamanho em pixels da imagem que ficou pra fora da tela, pra ver esse pedaço de imagem
+    é só mudar o width da imagem pra 1000
+    aí quando a imagem vai começar a sair da tela, o que fizemos é 
+    reiniciar a contagem do ground_scroll pra 0, aí temos o efeito de movimento.
+
+
+VIDEO 2
+-> Criar uma classe Bird, essa classe deve herdar de pygame.sprite.Sprite
+-> no nosso init devemos passar os argumentos x, y, que é a posição inicial do passaro
+-> self.image = vai ser a nossa imagem bird1
+-> self.rect = pegar o retangulo de self.image
+-> centralizar o rect com rect.center que recebe x e y
+
+-> agora vamos criar um sprite group chamado bird_group
+-> instanciar a classe bird e passa x, y que será a localização inicial do passaro
+-> adicionar o passaro na sprite group
+-> desenhar o sprite_group.draw() depois de onde desenhamos o background
+
+-> agora vamos criar a animação do passaro, ou seja, ele batendo as asas
+-> dentro da classe Bird, precisamos definir algumas variaveis:
+    -> self.images = [] -> vai armazenar todos os sprites
+    -> self.index = 0 -> vai dizer qual é a imagem que estamos mostrando
+    -> self.counter = 0 -> controla a velocidade em que animação roda
+    -> vamos fazer um for loop para conseguir alterar o nome das imagens:
+        for num in range(1, 4):
+            img = pygame.image.load(f'img/bird{num}.png')
+            e fazer apend da img na nossa lista self.images
+
+    -> agora, no nosso self.image, não precisamos mais da imagem feita com load, 
+    precisamos apenas da imagem inicial, ou seja, a que está no index[0]
+        -> self.image = self.images[self.index]
+
+    -> agora vamos definir o método update, que sempre é chamado.
+    -> no método update, vamos lidar com a animação:
+
+        self.counter += 1
+        flap_cooldown = 5
+        if self.counter > flap_cooldown: -> timer para batida das asas
+            self.counter = 0 
+            self.index += 1
+            if self.index >= len(self.images):
+                self.index = 0
+        self.image = self.images[self.index]
+    
+    -> chamar o método update no main loop.
+
+
+VIDEO 3
+-> adicionando fisica ao jogo
+-> temos que ter uma variavel velocidade, que sempre vai puxar o passaro pra baixo
+-> toda vez que clicarmos no botão direito do mouse, nosso passaro deve ir pra cima 
+na mesma proporção de velocidade
+-> para ter essa gravidade, tudo que precisamos é definir uma variavel self.val = 0 no init
+-> no método update, apenas colocar 0.5 a variavel velocidade
+-> ainda no update, pro sprite ir para baixo, y é positivo, então podemos fazer
+self.rect.y += int(self.vel)
+
+-> se testar o jogo agora, o passaro vai cair infinitamente
+-> pra isso não acontecer, precisamos fazer um if statement antes do código acima que dá fisica ao passaro:
+    if self.rect.bottom < 600:
+        ...
+-> outro problema é que nossa velocidade vai ficar incrementando infinitamente, isso vai dificultar depois para 
+mandar o passaro pra cima quando clicar no mouse
+-> para resolver isso, precisamos de um if statement para self.val:
+    if self.val > 8:
+        self.val = 8    
+
+-> agora precisamos adicionar o efeito do passaro subir ao clicar com o botão direito do mouse,
+ainda dentro do update:
+-> antes, vamos adicionar no init uma variavel self.clicked = False
+-> essa variavel vai controlar para que ao deixar o bota do mouse pressionado o passaro não suba infinitamente
+    if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+        self.clicked = True
+        self.val = -10 -> valor negativo é para o sprite subir
+    else:
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+
+-> agora vamos adicionar uma nova feature, que é rotacionar o passaro
+conforme ele sobre ou desce
+-> ao final do metodo update vamos adicionar
+-> self.image = pygame.transform.rotate(self.images[index], self.vel * -2)
+
+-> uma featura que vamos adicionar é que, quando o jogo começar, o passaro só vai começar a cair
+quando a gente pressionar o botão esquerdo do mouse
+-> pra isso vamos adicionar uma variavel global flying = False
+-> no main loop onde capturamos todos os eventos do jogo, vamos fazer um novo if:
+    if event.type == pygame.MOUSEBUTTONDOWN and flying == False:
+        flying = True
+-> agora vamos aplicar a gravidade somente se flying == True, dentro do update onde definimos a gravidade.
+    if flying == True:
+        # codigo de gravidade
+
+-> uma outra feature que podemos adicionar é que quando o passaro tocar o chão, o chão parar, como game over.
+-> criar uma variavel global, game_over = False
+-> agora onde temos nossa captura de eventos no main loop, vamos ajustar o código:
+    if event.type == pygame.MOUSEBUTTONDOWN and flying == False and game_over == False:
+        flying = True
+
+-> agora dentro do nosso main loop, abaixo de onde chamamos o metodo update, temos que verificar
+se o sprite tocou o ground:
+    if flappy.rect.bottom > 600: 600 é o inicio do nosso ground
+        game_over = True
+        flying = False
+
+-> nosso screen.blit que mostra o ground, vai pra baixo do update, e o código que desenha o ground vai
+ser envolvido em um if statement:
+    if game_over == False:
+        ...
+
+-> se testarmos o código agora, quando o sprite toca o ground, tudo para,
+menos a asa do passaro, pra ela parar também temos que adicionar uma nova feature.
+
+-> dentro do update, onde temos o código que faz o passaro dar o jump, vamos envolver todo ele em um if statement:
+    if game_over == False:
+        ...
+    else:
+        self.image = pygame.transform.rotate(self.images[self.index], -90)
+        -> isso vai fazer com que quando o passaro encoste no chão, ele vire 90 graus.
+
+
+VIDEO 4 - Adicionando Pipes e colisão
+
+-> criar uma classe pipe, o init vai receber dois args, x e y que será a posição do pipe
+-> seguir a ordem:
+    definir self.image
+    pegar o rect desta imagem
+    definir o local do pipe com self.rect.topleft = (x, y)
+
+-> definir um pipe group
+-> instanciar uma classe de pipe, os argumentos de Pipe serão 300, int(screen_height/2) 
+-> adicionar essa instancia ao pipe_group
+-> definir draw e update desta pipe_group também dentro do main loop
+
+-> agora precisamos de um pipe na parte de cima, pra isso podemos usar a função de virar a imagem
+-> pra podermos virar essa imagem, temos que alterar a nossa classe pipe
+
+-> no init da classe Pipe, vamos adicionar o argumento position
+-> position vai ser um argumento 1 ou -1, 1 pra cima, -1 pra baixo
+-> se position == 1:
+    self.image =   pygame.transform.flip(imagem que quero fazer flip, axis que vai rotacionar x, ou y (True or False))
+    precisamos definir um rect pra essa image depois de ser feito o flip
+    self.rect.bottomleft = (x, y)
+-> se position == -1, então o pipe não precisa ser virado
+    se position == -1:
+        self.rect.topleft = (x, y)
+        
+-> agora precisamos criar uma instancia da classe pipe para o top, e passar o argumento -1 ou 1, também adicionar essa nova instancia ao pipe_group
+
+-> precisamos definir o espaço entre os pipes, vamos definir uma variavel global pipe_gap = 200 (200px)
+-> pra ter essa diferença entre os pipes, quando desenhamos os pipes sendo 1 ou -1, o y do topleft e y do bottomleft, é o que dá a altura
+para o pipe, então podemos fazer:
+    self.rect.bottomleft = (x, y - int(pipe_gap / 2)) para o 1
+    self.rect.bottomleft = (x, y + int(pipe_gap / 2)) para o -1
+
+-> para mover os pipes para a esquerda, apenas precisamos definir o método update de pipe e nele:
+    self.rect.x -= scroll_speed
+
+-> agora precisamos fazer com que os pipes sejam criados automaticamente:
+-> definir uma variavel global, pipe_frequency = 1500, essa variavel vai definir o tempo em que os pipes vão ser gerados,
+o tempo está em miliseconds
+-> também precisamos saber o tempo em que o último pipe foi gerado, ou como no inicio do jogo nenhum foi gerado, vamos pegar o tempo
+do primeiro
+    -> vamos definir uma variavel global, que vai pegar a primeira chamada do pipe, lembrando que o tempo é em ms
+     last_pipe = pygame.time.get_ticks() retorna o tempo em ms desde que pygame.init() foi chamado.
+
+-> no main loop, depois da checagem se o jogo ainda está rodando (game_over == False), vamos gerar os pipes automaticamente:
+    time_now = pygame.time.get_ticks()
+    if time_now - last_pipe > pipe_frequency:
+        ... instancias de pipe vem pra cá, só vamos colocar o arg x da instancia como o screen_w, o arg x é onde os pipes começam a ser gerados, ou seja, ao final da tela
+            adição das instancias no pipe_group também vem pra cá
+
+-> também temos que lembrar que agora o nosso último pipe vai ser o primeiro, então ao final colocamos:
+    last_pipe = time_now
+
+-> se rodar o jogo agora, vamos notar que os pipes demoram cerca de 1.5 segundos para aparecer, esse é o tempo que demora pra chegar
+no código dos pipes, pra isso podemos alterar nossa variavel global last_pipe:
+    last_pipe = pygame.time.get_ticks() - pipe_frequency
+
+-> outro detalhe agora é que os tubos são gerados na tela automaticamente mesmo com o passaro parado, e não queremos isso, queremos que tudo comece a acontecer quando o 
+click no mouse for feito.
+-> pra isso, onde temos o código if game_over == False temos que ter outra condição, and flying == True
+
+-> outra implementação que vamos fazer é gerar automaticamente os pipes com espaços randomizados entre eles, pra isso precisamos da biblioteca random
+-> agora vamos até a parte em que geramos os pipes, vamos criar uma variavel antes de gerar os pipes:
+    pipe_height = random.randint(-100, 100) -> a altura dos pipes vai ser de -100 até 100 pixels
+-> agora na parte onde geramos o bottom pipe e o top pipe, onde passamos a variavel y, vamos somar com pipe_height
+
+-> Quando os pipes são gerados e passam do limite da tela, eles continuam consumindo memória, podemos ajustar isso no método update do Pipe
+-> vamos checar se a posição a direita do retangulo é < 0, se for, matamos o objeto com self.kill().
+
+-> o proximo update é adicionar colisão entre os pipes e o passaro, para isso podemos usar o groupcollide, que é uma função que podemos usar por estar utilizando o sprite.Sprite
+-> esse código vai dentro do main loop, onde desenhamos nosso ground
+-> se pygame.sprite.groupcollide(bird_group, pipe_group, False, False) -> os args bool são do_kill, ou seja, morre um, ou outro ou os dois
+-> também precisamos saber se essa colisão inclui o passaro tocar o top da tela
+-> or flappy.rect.top < 0
+-> se uma das duas condições for verdadeira, então game_over = True
+
+-> Também precisamos passar o pipe_group.update() pra dentro do if statement onde checa se game_over e flying são falsos, ou seja, se o jogo está rodando ainda
+
+
+VIDEO 5 - Adicionando score
+
+-> para adicionar um score, primeiro precisamos definir a forma de contagem dos pontos
+-> para marcar um ponto, o passaro precisa passar por cada tubo, entrar e sair
+
+    |  |
+  ->| O|->
+    |__|
+
+    -> vamos supor que 0 é o passaro e que o retangulo que representa o passaro precisar entrar e sair do retangulo do pipe
+    -> então precisamos primeiro definir duas variaveis global
+        score = 0
+        pass_pipe = False -> variavel que vai dizer se o passaro entrou e saiu do pipe para marcar o ponto
+
+    -> o grupo de sprites é como uma lista, desta forma podemos acessar os sprites dentro dos grupos pelo index
+    -> dentro do grupo dos passaros, só temos 1 sprite, então é facil acessar [0]
+    -> dentro do grupo dos pipes, queremos sempre o primeiro sprite, então acessamos no index[0]
+    -> o algoritmo para checar se o passaro passou ou não pelo pipe é esse:
+        primeiro checar se o tamanho do pipe_group é maior que 0, dessa forma vamos saber que já tem pipe sprites dentro da lista e não vamos ter um IndexOutOfRange erro.
+        se for:
+            precisamos checar se a parte esquerda do retangulo passou a parte esquerda do pipe:
+                if bird_group.sprites()[0].rect.left > pipe_group.sprites()[0].rect.left
+            feito essa checagem, o passaro vai estar dentro do rect do pipe, agora precisamos adicionar uma condição 'and' para confirmar que o passaro ainda não atravessou a direita
+            do pipe
+                and bird_group.sprites()[0].rect.right < pipe_group.sprites()[0].rect.right
+            se as duas condições forem verdadeiras, precisamos checar uma terceira condição, que é a de que a variavel pass_pipe == False, ou seja, o passaro ainda não saiu da area do pipe
+            e não marcou o ponto. Se essas 3 condições forem verdadeiras, então:
+                pass_pipe = True
+            
+            -> agora vamos checar se a parte direita do passaro passou a parte direita do pipe, marcando assim o ponto:
+                se pass_pipe == True: -> significa que a parte esquerda do passaro já está dentro da area do pipe
+                    se a parte direita do sprite passaro for > a parte direita do sprite do pipe:
+                        então score += 1
+                        pass_pipe = False -> ou seja, o passaro saiu do retangulo do pipe, a variavel voltou para false e vamos nos preparar para o proximo pipe
+
+
+-> também precisamos de uma maneira de mostrar o score na tela
+    -> vamos definir algumas variaveis global:
+        font = pygame.font.SysFont('Bauhaus 93', 60)
+        white = (255, 255, 255)
+
+    -> para facilitar, definir uma função para mostrar na tela o texto:
+        def draw_text(text, font, text_col, x, y):
+            img = font.render(text, True, text_col)
+            screen.blit(img, (x, y))
+
+    -> chamamos a função depois de fazer a checagem dos pontos
+        draw_text(str(score), font, white, int(screen_w / 2), 20)
